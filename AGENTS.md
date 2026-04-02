@@ -49,6 +49,7 @@
 - 브랜치 / worktree / commit / review 규칙은 `docs/GIT_RULES.md`를 따른다.
 - 테이블 구조 / 인덱스 / 관계 / RLS 원칙은 `docs/DB_SCHEMA.md`를 따른다.
 - DB/결제/비밀정보 서버 경계 규칙은 `docs/DB_SCHEMA.md`의 security boundary를 함께 따른다.
+- 구현 세션과 리뷰 세션의 handoff 절차는 `docs/PHASE_HANDOFF.md`를 따른다.
 
 ## Product scope
 
