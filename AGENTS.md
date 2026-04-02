@@ -31,6 +31,8 @@
 8. DB 스키마 변경은 반드시 migration으로 관리한다.
 9. 인증/프로필/팔로우/게시글/댓글/좋아요 관련 데이터는 RLS 전제로 설계한다.
 10. 구현 후 lint / typecheck / build / 주요 사용자 플로우 검증을 수행한다.
+11. DB 조회/변경, 결제 처리, 비밀 키 사용은 항상 서버 측에서만 실행한다.
+12. Client Component와 브라우저 번들에는 DB 접근 키, 결제 비밀 키, 관리자 권한 키를 절대 넣지 않는다.
 
 ## Stack assumptions
 
@@ -46,6 +48,7 @@
 - 새 phase를 시작하거나 이어서 진행하면 `skills/gsd-phase/SKILL.md`를 따른다.
 - 브랜치 / worktree / commit / review 규칙은 `docs/GIT_RULES.md`를 따른다.
 - 테이블 구조 / 인덱스 / 관계 / RLS 원칙은 `docs/DB_SCHEMA.md`를 따른다.
+- DB/결제/비밀정보 서버 경계 규칙은 `docs/DB_SCHEMA.md`의 security boundary를 함께 따른다.
 
 ## Product scope
 
