@@ -1,0 +1,99 @@
+@import "tailwindcss";
+
+:root {
+  --background: #131313;
+  --foreground: #e5e2e1;
+  --surface: #131313;
+  --surface-lowest: #0e0e0e;
+  --surface-low: #1c1b1b;
+  --surface-high: #2a2a2a;
+  --surface-bright: #393939;
+  --surface-container: #201f1f;
+  --primary: #95d4b3;
+  --primary-container: #00452e;
+  --tertiary: #eac34a;
+  --outline: #8b928d;
+  --outline-variant: #414844;
+  --on-surface: #e5e2e1;
+  --on-surface-variant: #c1c8c2;
+  --error: #ffb4ab;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-surface: var(--surface);
+  --color-surface-lowest: var(--surface-lowest);
+  --color-surface-low: var(--surface-low);
+  --color-surface-high: var(--surface-high);
+  --color-surface-bright: var(--surface-bright);
+  --color-surface-container: var(--surface-container);
+  --color-primary: var(--primary);
+  --color-primary-container: var(--primary-container);
+  --color-tertiary: var(--tertiary);
+  --color-outline: var(--outline);
+  --color-outline-variant: var(--outline-variant);
+  --color-on-surface: var(--on-surface);
+  --color-on-surface-variant: var(--on-surface-variant);
+  --color-error: var(--error);
+  --font-sans: var(--font-noto-sans-kr);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  min-height: 100%;
+}
+
+body {
+  min-height: 100dvh;
+  background:
+    radial-gradient(circle at top, rgba(149, 212, 179, 0.12), transparent 26%),
+    linear-gradient(180deg, #171717 0%, #131313 42%, #0f0f0f 100%);
+  color: var(--on-surface);
+  font-family: var(--font-noto-sans-kr), sans-serif;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button {
+  cursor: pointer;
+}
+
+::selection {
+  background: rgba(234, 195, 74, 0.24);
+  color: var(--on-surface);
+}
+
+.app-shell-backdrop {
+  position: relative;
+  isolation: isolate;
+}
+
+.app-shell-backdrop::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 20% 0%, rgba(234, 195, 74, 0.08), transparent 26%),
+    radial-gradient(circle at 100% 20%, rgba(149, 212, 179, 0.08), transparent 24%);
+  pointer-events: none;
+  z-index: -1;
+}
+
+.premium-card {
+  background: linear-gradient(180deg, rgba(42, 42, 42, 0.94), rgba(28, 27, 27, 0.94));
+  border: 1px solid rgba(65, 72, 68, 0.32);
+  box-shadow: 0 20px 48px rgba(0, 0, 0, 0.18);
+}
+
+.felt-panel {
+  background:
+    radial-gradient(circle at center, rgba(149, 212, 179, 0.08), transparent 56%),
+    linear-gradient(180deg, #171a19 0%, #111111 100%);
+}

@@ -141,7 +141,9 @@ git worktree add -b review/02-auth ../wt-holrecow-review-02-auth phase/02-auth
 ```
 
 - review는 구현 branch를 직접 덮어쓰지 않는다.
-- 리뷰 세션은 작은 수정만 수행하고, 범위 확대는 하지 않는다.
+- 리뷰 세션은 PR 기준 read-only reviewer로 동작한다.
+- 리뷰 세션은 GitHub PR에 comment / review를 남기고, 코드 수정이나 커밋은 하지 않는다.
+- 구현 세션이 리뷰 피드백을 받아 다시 수정한다.
 
 ### 6. 머지 이후 정리
 
