@@ -1,20 +1,21 @@
 import "server-only";
 
-function requireEnv(name: string) {
-  const value = process.env[name];
-
-  if (!value) {
-    throw new Error(`${name} 환경변수가 필요합니다.`);
-  }
-
-  return value;
-}
+import {
+  getSiteUrl,
+  getSupabaseCredentials,
+  hasSupabaseCredentials,
+} from "@/lib/supabase/config";
 
 export const serverEnv = {
   get supabaseUrl() {
-    return requireEnv("SUPABASE_URL");
+    return getSupabaseCredentials().url;
   },
   get supabasePublishableKey() {
-    return requireEnv("SUPABASE_PUBLISHABLE_KEY");
+    return getSupabaseCredentials().publishableKey;
+  },
+  get siteUrl() {
+    return getSiteUrl();
   },
 };
+
+export { hasSupabaseCredentials };
