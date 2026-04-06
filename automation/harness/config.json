@@ -8,6 +8,7 @@
   "mergeTimeoutMs": 14400000,
   "codex": {
     "model": "gpt-5.4",
+    "timeoutMs": 1800000,
     "execArgs": [
       "--dangerously-bypass-approvals-and-sandbox",
       "--color",

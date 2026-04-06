@@ -209,6 +209,19 @@ async function ensureBaseFetched(repoRoot) {
   await runCapture("git", ["fetch", "origin"], { cwd: repoRoot });
 }
 
+async function ensureWorktreeDependencies(worktreePath) {
+  const nodeModulesPath = path.join(worktreePath, "node_modules");
+
+  if (await pathExists(nodeModulesPath)) {
+    return;
+  }
+
+  console.log(`[Harness] Installing dependencies in ${worktreePath}`);
+  await runCapture("pnpm", ["install", "--frozen-lockfile"], {
+    cwd: worktreePath,
+  });
+}
+
 async function ensurePhaseWorktree(repoRoot, phaseState, config, dryRun) {
   const worktrees = await listWorktrees(repoRoot);
   const existing = worktrees.find((worktree) => path.resolve(worktree.path) === phaseState.phaseWorktree);
@@ -369,6 +382,8 @@ ${formatList(phase.reviewFocus)}
 - 코드는 수정하지 않는다.
 - 커밋하지 않는다.
 - plain gh 대신 GitHub 읽기는 scripts/gh-review 를 우선 사용해도 된다.
+- 비교 기준은 반드시 origin/main...${phaseState.reviewBranch} 로 본다.
+- node_modules 가 없으면 pnpm install --frozen-lockfile 로 의존성을 먼저 준비한다.
 - 문제를 찾을 때는 버그, 회귀, 서버 경계 위반, 누락된 상태, 검증 부족을 우선한다.
 - 취향 수준의 의견은 finding으로 만들지 않는다.
 - 로컬에서 필요한 lint/typecheck/build/test 검증은 실행 가능하다.
@@ -557,6 +572,7 @@ async function runCodexTask({
   logPath,
   model,
   extraArgs,
+  timeoutMs,
 }) {
   const args = ["exec", ...extraArgs];
 
@@ -570,6 +586,7 @@ async function runCodexTask({
     cwd: repoRoot,
     input: `${prompt}\n`,
     logFile: logPath,
+    timeoutMs,
   });
 
   const payload = await readJson(outputPath);
@@ -787,6 +804,7 @@ async function runPhaseImplementation(repoRoot, harness, phase, phaseState) {
   const prompt = buildPhasePrompt(phase, phaseState);
 
   await writeText(promptPath, `${prompt}\n`);
+  await ensureWorktreeDependencies(phaseState.phaseWorktree);
 
   const result = await runCodexTask({
     repoRoot,
@@ -797,6 +815,7 @@ async function runPhaseImplementation(repoRoot, harness, phase, phaseState) {
     logPath,
     model: harness.config.codex.model,
     extraArgs: harness.config.codex.execArgs,
+    timeoutMs: harness.config.codex.timeoutMs,
   });
 
   await ensureCleanWorktree(phaseState.phaseWorktree);
@@ -816,6 +835,7 @@ async function runReview(repoRoot, harness, phase, phaseState) {
   const prompt = buildReviewPrompt(phase, phaseState);
 
   await writeText(promptPath, `${prompt}\n`);
+  await ensureWorktreeDependencies(phaseState.reviewWorktree);
 
   const result = await runCodexTask({
     repoRoot,
@@ -826,6 +846,7 @@ async function runReview(repoRoot, harness, phase, phaseState) {
     logPath,
     model: harness.config.codex.model,
     extraArgs: harness.config.codex.execArgs,
+    timeoutMs: harness.config.codex.timeoutMs,
   });
 
   await ensureCleanWorktree(phaseState.reviewWorktree);
@@ -845,6 +866,7 @@ async function runReconcile(repoRoot, harness, phase, phaseState, reviewResult) 
   const prompt = buildReconcilePrompt(phase, phaseState, reviewResult);
 
   await writeText(promptPath, `${prompt}\n`);
+  await ensureWorktreeDependencies(phaseState.phaseWorktree);
 
   const result = await runCodexTask({
     repoRoot,
@@ -855,6 +877,7 @@ async function runReconcile(repoRoot, harness, phase, phaseState, reviewResult) 
     logPath,
     model: harness.config.codex.model,
     extraArgs: harness.config.codex.execArgs,
+    timeoutMs: harness.config.codex.timeoutMs,
   });
 
   await ensureCleanWorktree(phaseState.phaseWorktree);

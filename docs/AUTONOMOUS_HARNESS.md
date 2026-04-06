@@ -89,6 +89,7 @@ v1 하네스를 실제로 완전자동으로 돌리려면 현재 기준으로 �
 
 - `gh` 본계정 인증 완료
 - `scripts/gh-review` 봇 계정 인증 완료
+- 새 phase/review worktree의 의존성은 하네스가 `pnpm install --frozen-lockfile`로 자동 bootstrap 한다.
 
 ## v1 제한
 
@@ -96,6 +97,7 @@ v1 하네스를 실제로 완전자동으로 돌리려면 현재 기준으로 �
 - human reviewer의 자유 형식 코멘트까지 자동 분류하지는 않는다.
 - 회색지대 요구사항이나 외부 설정 부족이 발생하면 해당 phase에서 중단한다.
 - merge 이후 배포나 운영 검증은 아직 포함하지 않는다.
+- Codex phase/review 세션은 timeout이 걸려 있으며, timeout 시 해당 phase를 blocked/failed 로 멈춘다.
 
 ## 권장 운영 방식
 

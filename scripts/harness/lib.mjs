@@ -103,7 +103,14 @@ export async function runCapture(command, args, options = {}) {
 }
 
 export async function runStreaming(command, args, options = {}) {
-  const { cwd, env, input = "", logFile = null, quiet = false } = options;
+  const {
+    cwd,
+    env,
+    input = "",
+    logFile = null,
+    quiet = false,
+    timeoutMs = null,
+  } = options;
 
   if (logFile) {
     await ensureDir(path.dirname(logFile));
@@ -115,6 +122,8 @@ export async function runStreaming(command, args, options = {}) {
       env,
       stdio: "pipe",
     });
+    let finished = false;
+    let timeoutId = null;
 
     let stdout = "";
     let stderr = "";
@@ -146,6 +155,10 @@ export async function runStreaming(command, args, options = {}) {
     child.stderr.on("data", onStderr);
     child.on("error", reject);
     child.on("close", (code) => {
+      finished = true;
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
       logStream?.end();
 
       if (code === 0) {
@@ -157,6 +170,24 @@ export async function runStreaming(command, args, options = {}) {
         new CommandError([command, ...args].join(" "), code ?? 1, stdout, stderr),
       );
     });
+
+    if (timeoutMs) {
+      timeoutId = setTimeout(() => {
+        if (finished) {
+          return;
+        }
+
+        child.kill("SIGTERM");
+        reject(
+          new CommandError(
+            [command, ...args].join(" "),
+            124,
+            stdout,
+            `${stderr}\nProcess timed out after ${timeoutMs}ms`,
+          ),
+        );
+      }, timeoutMs);
+    }
 
     child.stdin.end(input);
   });
