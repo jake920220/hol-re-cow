@@ -319,11 +319,11 @@ export function FeedContent({ data }: { data: FeedData }) {
         <FeedStateCard
           badge="Empty Feed"
           title="아직 팔로우한 플레이어가 없어요"
-          description="기본 피드는 내 글과 팔로우한 플레이어의 게시글만 묶어서 보여줍니다. 먼저 내 첫 글을 올리거나 마이페이지에서 팔로우 관계를 준비해 주세요."
+          description="기본 피드는 내 글과 팔로우한 플레이어의 게시글만 묶어서 보여줍니다. 지금 가능한 다음 행동은 내 첫 글을 올려 피드 흐름을 시작하거나, 마이페이지에서 현재 프로필과 게시글 수를 확인하는 것입니다."
           primaryHref="/create"
           primaryLabel="첫 글 작성하기"
           secondaryHref="/mypage"
-          secondaryLabel="마이페이지 보기"
+          secondaryLabel="내 프로필 보기"
         />
       ) : null}
 
