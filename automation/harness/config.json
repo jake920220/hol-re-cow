@@ -1,0 +1,86 @@
+{
+  "version": 1,
+  "baseBranch": "main",
+  "phaseWorktreeTemplate": "../wt-holrecow-phase-{nn}-{slug}",
+  "reviewWorktreeTemplate": "../wt-holrecow-review-{nn}-{slug}",
+  "maxReviewCycles": 3,
+  "pollIntervalMs": 60000,
+  "mergeTimeoutMs": 14400000,
+  "codex": {
+    "model": "gpt-5.4",
+    "execArgs": [
+      "--dangerously-bypass-approvals-and-sandbox",
+      "--color",
+      "never",
+      "--ephemeral"
+    ]
+  },
+  "phases": [
+    {
+      "number": 3,
+      "slug": "feed-follow",
+      "name": "팔로우 기반 피드",
+      "goal": "기본 피드를 내 게시글과 팔로우한 유저 게시글 기준으로 완성하고 empty/loading/error state를 포함해 검증한다.",
+      "scope": [
+        "팔로우 기반 피드 조회 구조와 published 정렬 규칙을 구현한다.",
+        "핸드리뷰 카드와 자유글 카드가 같은 피드 문법 안에서 구분되도록 만든다.",
+        "팔로우 없음, 게시글 없음, 로딩, 오류 상태를 설계 범위 안에서 반영한다.",
+        "공통 앱 셸과 모바일 레이아웃 규칙을 유지한다."
+      ],
+      "manualChecks": [
+        "375, 390, 430 뷰포트에서 피드 카드 간격과 하단 탭 safe area를 확인한다.",
+        "팔로우 없음과 게시글 없음 empty state가 서로 다른 문맥으로 보이는지 확인한다.",
+        "로그인 사용자 본인 글과 팔로우 글만 보이는 기본 규칙을 점검한다."
+      ],
+      "reviewFocus": [
+        "피드 조회 규칙이 docs/DB_SCHEMA.md의 feed query contract와 맞는지",
+        "empty/loading/error 상태가 빠지지 않았는지",
+        "공통 셸과 디자인 위계가 깨지지 않았는지"
+      ]
+    },
+    {
+      "number": 4,
+      "slug": "post-create",
+      "name": "게시글 작성 흐름",
+      "goal": "hand_review / free_post 작성 진입과 서버 경계 기반 작성 흐름을 구현한다.",
+      "scope": [
+        "게시글 타입 선택과 hand_review / free_post 작성 진입 UX를 완성한다.",
+        "작성 불가, 초안, 제출 가능 상태를 CTA와 필드 검증에 반영한다.",
+        "DB 쓰기와 비밀정보 처리는 서버 경계에서만 수행한다.",
+        "작성 화면이 공통 앱 셸 안에서 동작하도록 유지한다."
+      ],
+      "manualChecks": [
+        "작성 타입 선택이 즉시 구분되는지 확인한다.",
+        "필수 입력 누락, disabled, error 상태가 버튼과 필드 근처에서 드러나는지 확인한다.",
+        "모바일에서 키보드와 safe area가 CTA를 가리지 않는지 확인한다."
+      ],
+      "reviewFocus": [
+        "게시글 생성이 서버 액션 또는 route handler 안에서만 처리되는지",
+        "hand_review / free_post 분기가 스키마 계약과 맞는지",
+        "작성 플로우 상태와 validation 누락이 없는지"
+      ]
+    },
+    {
+      "number": 5,
+      "slug": "mypage",
+      "name": "마이페이지 확장",
+      "goal": "프로필 조회/수정과 내 게시글, 팔로워/팔로잉 구조를 MVP 범위에서 완성한다.",
+      "scope": [
+        "프로필 읽기 화면과 편집 동선을 혼동되지 않게 구현한다.",
+        "내 게시글 목록과 팔로워 / 팔로잉 요약 또는 진입 구조를 만든다.",
+        "빈 목록과 준비중 상태를 문맥에 맞게 분리한다.",
+        "profiles 중심의 권한과 서버 경계를 유지한다."
+      ],
+      "manualChecks": [
+        "읽기 화면과 수정 화면의 위계가 섞이지 않는지 확인한다.",
+        "내 게시글, 팔로워, 팔로잉 빈 상태가 각각 다르게 보이는지 확인한다.",
+        "375, 390, 430 뷰포트에서 프로필 헤더와 섹션 간격을 확인한다."
+      ],
+      "reviewFocus": [
+        "profiles 수정 권한이 본인에게만 열리는지",
+        "마이페이지 정보 위계가 docs/DESIGN.md와 맞는지",
+        "서버/클라이언트 경계와 RLS 가정이 깨지지 않았는지"
+      ]
+    }
+  ]
+}

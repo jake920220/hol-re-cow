@@ -8,7 +8,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "echo 'No tests configured yet'"
+    "test": "echo 'No tests configured yet'",
+    "harness:run": "node scripts/harness/run.mjs",
+    "harness:status": "node scripts/harness/status.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.10.0",
