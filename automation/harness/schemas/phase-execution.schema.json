@@ -1,0 +1,75 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "status",
+    "summary",
+    "change_summary",
+    "verification",
+    "manual_checks",
+    "pr_title",
+    "risks",
+    "commit_created",
+    "blocker"
+  ],
+  "properties": {
+    "status": {
+      "type": "string",
+      "enum": ["implemented", "blocked", "failed"]
+    },
+    "summary": {
+      "type": "string"
+    },
+    "change_summary": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "verification": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["lint", "typecheck", "build", "test"],
+      "properties": {
+        "lint": {
+          "type": "string",
+          "enum": ["passed", "failed", "skipped"]
+        },
+        "typecheck": {
+          "type": "string",
+          "enum": ["passed", "failed", "skipped"]
+        },
+        "build": {
+          "type": "string",
+          "enum": ["passed", "failed", "skipped"]
+        },
+        "test": {
+          "type": "string",
+          "enum": ["passed", "failed", "skipped"]
+        }
+      }
+    },
+    "manual_checks": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "pr_title": {
+      "type": "string"
+    },
+    "risks": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "commit_created": {
+      "type": "boolean"
+    },
+    "blocker": {
+      "type": ["string", "null"]
+    }
+  }
+}

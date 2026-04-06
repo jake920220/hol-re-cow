@@ -1,0 +1,88 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "status",
+    "verdict",
+    "summary",
+    "findings",
+    "verification",
+    "risks",
+    "blocker"
+  ],
+  "properties": {
+    "status": {
+      "type": "string",
+      "enum": ["reviewed", "blocked", "failed"]
+    },
+    "verdict": {
+      "type": "string",
+      "enum": ["approved", "changes_requested"]
+    },
+    "summary": {
+      "type": "string"
+    },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "severity", "title", "detail", "recommendation", "file"],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "severity": {
+            "type": "string",
+            "enum": ["critical", "high", "medium", "low"]
+          },
+          "title": {
+            "type": "string"
+          },
+          "detail": {
+            "type": "string"
+          },
+          "recommendation": {
+            "type": "string"
+          },
+          "file": {
+            "type": ["string", "null"]
+          }
+        }
+      }
+    },
+    "verification": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["lint", "typecheck", "build", "test"],
+      "properties": {
+        "lint": {
+          "type": "string",
+          "enum": ["passed", "failed", "skipped"]
+        },
+        "typecheck": {
+          "type": "string",
+          "enum": ["passed", "failed", "skipped"]
+        },
+        "build": {
+          "type": "string",
+          "enum": ["passed", "failed", "skipped"]
+        },
+        "test": {
+          "type": "string",
+          "enum": ["passed", "failed", "skipped"]
+        }
+      }
+    },
+    "risks": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "blocker": {
+      "type": ["string", "null"]
+    }
+  }
+}
