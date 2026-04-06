@@ -281,13 +281,21 @@ export async function getFeedData(previewValue?: string | null): Promise<FeedDat
     };
   }
 
-  const { data: profiles } = await supabase
+  const { data: profiles, error: profilesError } = await supabase
     .from("profiles")
     .select("id, display_name, handle")
     .in(
       "id",
       Array.from(new Set(feedPosts.map((post) => post.author_id))),
     );
+
+  if (profilesError) {
+    return {
+      mode: "error",
+      message: buildQueryErrorMessage(),
+      isPreview: false,
+    };
+  }
 
   const profileMap = new Map(
     ((profiles ?? []) as FeedProfileRow[]).map((profile) => [profile.id, profile]),
