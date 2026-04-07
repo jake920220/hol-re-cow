@@ -33,6 +33,11 @@ export type FeedData =
       isPreview: boolean;
     }
   | {
+      mode: "unavailable";
+      message: string;
+      isPreview: boolean;
+    }
+  | {
       mode: "empty-no-following";
       isPreview: boolean;
     }
@@ -116,14 +121,14 @@ function wait(ms: number) {
   });
 }
 
-function resolvePreviewMode(value?: string | null): PreviewMode {
+function resolvePreviewMode(value?: string | null): PreviewMode | null {
   if (!value) {
-    return "default";
+    return null;
   }
 
   return PREVIEW_MODES.has(value as PreviewMode)
     ? (value as PreviewMode)
-    : "default";
+    : null;
 }
 
 function buildAuthor(profile: FeedProfileRow | null, fallbackId: string) {
@@ -170,6 +175,10 @@ function buildQueryErrorMessage() {
   return "피드를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.";
 }
 
+function buildUnavailableMessage() {
+  return "현재 서버에 Supabase 환경변수가 없어 실제 피드를 조회할 수 없습니다. `SUPABASE_URL`과 `SUPABASE_PUBLISHABLE_KEY`를 연결하면 내 글과 팔로우한 플레이어의 published 글을 최신순으로 확인할 수 있습니다.";
+}
+
 export async function getFeedData(previewValue?: string | null): Promise<FeedData> {
   const previewMode = resolvePreviewMode(previewValue);
 
@@ -198,6 +207,14 @@ export async function getFeedData(previewValue?: string | null): Promise<FeedDat
         mode: "error",
         message: "Supabase 연결이 없어 프리뷰 전용 오류 상태를 표시하고 있습니다.",
         isPreview: true,
+      };
+    }
+
+    if (!previewMode) {
+      return {
+        mode: "unavailable",
+        message: buildUnavailableMessage(),
+        isPreview: false,
       };
     }
 

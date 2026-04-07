@@ -307,6 +307,18 @@ export function FeedContent({ data }: { data: FeedContentData }) {
         </>
       ) : null}
 
+      {data.mode === "unavailable" ? (
+        <FeedStateCard
+          badge="Feed Unavailable"
+          title="실제 피드를 아직 불러올 수 없어요"
+          description={data.message}
+          primaryHref="/auth/login"
+          primaryLabel="로그인 화면 보기"
+          secondaryHref="/mypage"
+          secondaryLabel="마이페이지 보기"
+        />
+      ) : null}
+
       {data.mode === "empty-no-following" ? (
         <FeedStateCard
           badge="Empty Feed"

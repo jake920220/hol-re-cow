@@ -144,6 +144,27 @@ describe("getFeedData", () => {
     });
   });
 
+  it("does not expose preview feed data on the default route without Supabase credentials", async () => {
+    vi.mocked(hasSupabaseCredentials).mockReturnValue(false);
+
+    await expect(getFeedData()).resolves.toEqual({
+      mode: "unavailable",
+      message:
+        "현재 서버에 Supabase 환경변수가 없어 실제 피드를 조회할 수 없습니다. `SUPABASE_URL`과 `SUPABASE_PUBLISHABLE_KEY`를 연결하면 내 글과 팔로우한 플레이어의 published 글을 최신순으로 확인할 수 있습니다.",
+      isPreview: false,
+    });
+  });
+
+  it("keeps explicit preview mode opt-in without Supabase credentials", async () => {
+    vi.mocked(hasSupabaseCredentials).mockReturnValue(false);
+
+    await expect(getFeedData("default")).resolves.toMatchObject({
+      mode: "ready",
+      followingCount: 1,
+      isPreview: true,
+    });
+  });
+
   it("keeps the published/self+following feed contract for server data", async () => {
     vi.mocked(hasSupabaseCredentials).mockReturnValue(true);
 
