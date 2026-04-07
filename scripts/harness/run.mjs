@@ -23,7 +23,6 @@ import {
 
 const RUNTIME_DIR = ".holrecow-harness";
 const HARNESS_COMMENT_PREFIX = "HOLRECOW-HARNESS";
-const PHASE_GITHUB_LOGIN = "jake920220";
 
 function parseArgs(argv) {
   const options = {
@@ -165,17 +164,10 @@ async function preflight(repoRoot, runtimeRoot) {
 
   await runCapture("which", ["codex"], { cwd: repoRoot });
   await runCapture("which", ["gh"], { cwd: repoRoot });
-  await runCapture("gh", ["auth", "switch", "-u", PHASE_GITHUB_LOGIN], { cwd: repoRoot });
   await runCapture("gh", ["auth", "status"], { cwd: repoRoot });
-
-  const phaseViewer = await runCapture("gh", ["api", "user"], { cwd: repoRoot });
-  const phaseLogin = JSON.parse(phaseViewer.stdout).login;
-
-  if (phaseLogin !== PHASE_GITHUB_LOGIN) {
-    throw new Error(
-      `Plain gh must authenticate as ${PHASE_GITHUB_LOGIN}, but currently resolves to ${phaseLogin}`,
-    );
-  }
+  await runCapture(path.join(repoRoot, "scripts", "gh-review"), ["auth", "status"], {
+    cwd: repoRoot,
+  });
 
   const dirtyLines = await readGitStatus(repoRoot, [".omx", RUNTIME_DIR]);
 
@@ -184,10 +176,6 @@ async function preflight(repoRoot, runtimeRoot) {
       `Harness must start from a clean worktree.\n${dirtyLines.join("\n")}`,
     );
   }
-}
-
-async function ensurePhaseGitHubAccount(cwd) {
-  await runCapture("gh", ["auth", "switch", "-u", PHASE_GITHUB_LOGIN], { cwd });
 }
 
 async function listWorktrees(repoRoot) {
@@ -350,9 +338,6 @@ ${formatList(phase.manualChecks)}
 - 검증은 최소 pnpm lint, pnpm typecheck, pnpm build, pnpm test 까지 실행한다.
 - 적절한 한국어 커밋 메시지로 커밋까지 완료한다.
 - push 와 PR 생성은 하지 않는다. 하네스가 담당한다.
-- 이 phase의 GitHub 주체는 구현 세션 계정 jake920220 이다.
-- 리뷰 결과를 반영하는 수정, PR 코멘트/대댓글, 최종 merge 주체도 jake920220 이다.
-- 구현 세션이 남기는 PR 본문과 코멘트 앞에는 항상 [구현자] 태그를 붙인다.
 - 판단이 필요한 회색지대가 나오면 임의로 확장하지 말고 status=blocked 로 끝낸다.
 
 완료 조건:
@@ -396,9 +381,7 @@ ${formatList(phase.reviewFocus)}
 리뷰 규칙:
 - 코드는 수정하지 않는다.
 - 커밋하지 않는다.
-- GitHub 읽기와 코멘트 작성은 모두 jake920220 계정으로 수행한다.
-- 같은 계정으로는 자기 PR에 공식 approve/request-changes review 를 남길 수 없으므로, 리뷰 결과는 [리뷰어] 태그가 붙은 PR 코멘트로만 남긴다.
-- 구현 세션 계정 jake920220 의 역할인 코드 수정, PR 대댓글, merge 를 대신하지 않는다.
+- plain gh 대신 GitHub 읽기는 scripts/gh-review 를 우선 사용해도 된다.
 - 비교 기준은 반드시 origin/main...${phaseState.reviewBranch} 로 본다.
 - node_modules 가 없으면 pnpm install --frozen-lockfile 로 의존성을 먼저 준비한다.
 - 문제를 찾을 때는 버그, 회귀, 서버 경계 위반, 누락된 상태, 검증 부족을 우선한다.
@@ -450,8 +433,6 @@ ${JSON.stringify(reviewResult, null, 2)}
 - 수정 후 pnpm lint, pnpm typecheck, pnpm build, pnpm test 를 다시 실행한다.
 - 코드 수정이 있다면 한국어 커밋 메시지로 커밋한다.
 - push 와 PR 댓글 작성은 하네스가 담당한다.
-- 이 단계의 GitHub 주체는 구현 세션 계정 jake920220 이다.
-- 구현 세션이 남기는 PR 코멘트와 대댓글 앞에는 항상 [구현자] 태그를 붙인다.
 - worktree는 clean 상태로 끝나야 한다.
 
 최종 응답은 JSON schema에 맞춰서만 출력한다.
@@ -479,8 +460,6 @@ function renderVerificationLines(verification) {
 
 function renderPrBody(phase, phaseResult) {
   return [
-    `[구현자]`,
-    ``,
     `## Summary`,
     ``,
     `**Phase ${phaseKey(phase.number)}: ${phase.name}**`,
@@ -521,8 +500,6 @@ function renderReviewBody(phase, phaseState, reviewResult) {
   };
 
   return [
-    `[리뷰어]`,
-    ``,
     `## Harness Review Summary`,
     ``,
     reviewResult.summary,
@@ -564,8 +541,6 @@ function renderReconcileComment(phase, phaseState, reconcileResult) {
   };
 
   return [
-    `[구현자]`,
-    ``,
     `## Harness Reconcile Summary`,
     ``,
     reconcileResult.summary,
@@ -639,8 +614,6 @@ async function pushBranch(worktree, branch, dryRun) {
     return;
   }
 
-  await ensurePhaseGitHubAccount(worktree);
-
   const firstAttempt = await runCapture("git", args, { cwd: worktree, allowFailure: true });
 
   if (firstAttempt.code === 0) {
@@ -651,10 +624,9 @@ async function pushBranch(worktree, branch, dryRun) {
 }
 
 async function resolvePullRequest(worktree, branch) {
-  await ensurePhaseGitHubAccount(worktree);
   const result = await runCapture(
     "gh",
-    ["pr", "view", branch, "--json", "number,url,state,author"],
+    ["pr", "view", branch, "--json", "number,url,state"],
     { cwd: worktree, allowFailure: true },
   );
 
@@ -665,25 +637,10 @@ async function resolvePullRequest(worktree, branch) {
   return JSON.parse(result.stdout);
 }
 
-function assertPullRequestOwnership(pullRequest, branch) {
-  const authorLogin = pullRequest?.author?.login ?? null;
-
-  if (!authorLogin) {
-    throw new Error(`Failed to determine PR author for branch ${branch}`);
-  }
-
-  if (authorLogin !== PHASE_GITHUB_LOGIN) {
-    throw new Error(
-      `PR ${pullRequest.number} for ${branch} must be authored by ${PHASE_GITHUB_LOGIN}, but is currently authored by ${authorLogin}`,
-    );
-  }
-}
-
 async function createPullRequest(worktree, branch, phaseResult, config, dryRun, artifactsDir) {
   const existing = await resolvePullRequest(worktree, branch);
 
   if (existing && existing.state === "OPEN") {
-    assertPullRequestOwnership(existing, branch);
     return {
       number: existing.number,
       url: existing.url,
@@ -691,7 +648,6 @@ async function createPullRequest(worktree, branch, phaseResult, config, dryRun, 
   }
 
   if (existing && existing.state === "MERGED") {
-    assertPullRequestOwnership(existing, branch);
     return {
       number: existing.number,
       url: existing.url,
@@ -708,8 +664,6 @@ async function createPullRequest(worktree, branch, phaseResult, config, dryRun, 
       url: `https://example.com/${branch}`,
     };
   }
-
-  await ensurePhaseGitHubAccount(worktree);
 
   await runCapture(
     "gh",
@@ -734,8 +688,6 @@ async function createPullRequest(worktree, branch, phaseResult, config, dryRun, 
     throw new Error(`Failed to resolve PR for branch ${branch}`);
   }
 
-  assertPullRequestOwnership(created, branch);
-
   return {
     number: created.number,
     url: created.url,
@@ -749,10 +701,18 @@ async function postReview(repoRoot, prNumber, reviewBody, verdict, dryRun) {
   if (dryRun) {
     return;
   }
-  await ensurePhaseGitHubAccount(repoRoot);
-  await runCapture("gh", ["pr", "comment", String(prNumber), "--body-file", bodyPath], {
-    cwd: repoRoot,
-  });
+
+  const reviewArgs = [String(prNumber), "--body-file", bodyPath];
+
+  if (verdict === "approved") {
+    reviewArgs.unshift("pr", "review");
+    reviewArgs.push("--approve");
+  } else {
+    reviewArgs.unshift("pr", "review");
+    reviewArgs.push("--request-changes");
+  }
+
+  await runCapture(path.join(repoRoot, "scripts", "gh-review"), reviewArgs, { cwd: repoRoot });
 }
 
 async function postPhaseComment(worktree, prNumber, body, dryRun) {
@@ -762,8 +722,6 @@ async function postPhaseComment(worktree, prNumber, body, dryRun) {
   if (dryRun) {
     return;
   }
-
-  await ensurePhaseGitHubAccount(worktree);
 
   await runCapture(
     "gh",
@@ -780,8 +738,6 @@ async function mergePullRequest(worktree, prNumber, headSha, pollMs, timeoutMs, 
       mergeCommit: { oid: "dry-run" },
     };
   }
-
-  await ensurePhaseGitHubAccount(worktree);
 
   await runCapture(
     "gh",
@@ -1049,14 +1005,7 @@ async function executePhaseLifecycle(repoRoot, harness, state, phase, options) {
     }
 
     const reviewBody = renderReviewBody(phase, phaseState, reviewResult);
-    try {
-      await postReview(repoRoot, phaseState.prNumber, reviewBody, reviewResult.verdict, options.dryRun);
-    } catch (error) {
-      phaseState.status = "failed";
-      phaseState.blocker = error.message;
-      await saveState(harness.stateFile, state);
-      throw error;
-    }
+    await postReview(repoRoot, phaseState.prNumber, reviewBody, reviewResult.verdict, options.dryRun);
 
     if (reviewResult.verdict === "approved") {
       phaseState.status = "approved";

@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+GH_REVIEW_CONFIG_DIR="${GH_REVIEW_CONFIG_DIR:-$HOME/.config/gh-holrecow-review-bot}"
+export GH_CONFIG_DIR="$GH_REVIEW_CONFIG_DIR"
+
 exec gh "$@"
