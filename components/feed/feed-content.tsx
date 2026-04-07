@@ -2,7 +2,10 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import type { FeedData, FeedItem } from "@/lib/server/feed";
+import type {
+  FeedContentData,
+  FeedContentItem,
+} from "@/lib/feed/feed-content-data";
 
 function truncateText(value: string, length: number) {
   const normalized = value.trim().replace(/\s+/g, " ");
@@ -12,38 +15,6 @@ function truncateText(value: string, length: number) {
   }
 
   return `${normalized.slice(0, length).trimEnd()}...`;
-}
-
-function formatRelativeTime(value: string) {
-  const timestamp = new Date(value).getTime();
-  const now = Date.now();
-
-  if (Number.isNaN(timestamp)) {
-    return "방금";
-  }
-
-  const minutes = Math.max(1, Math.floor((now - timestamp) / 60000));
-
-  if (minutes < 60) {
-    return `${minutes}분 전`;
-  }
-
-  const hours = Math.floor(minutes / 60);
-
-  if (hours < 24) {
-    return `${hours}시간 전`;
-  }
-
-  const days = Math.floor(hours / 24);
-
-  if (days < 7) {
-    return `${days}일 전`;
-  }
-
-  return new Intl.DateTimeFormat("ko-KR", {
-    month: "numeric",
-    day: "numeric",
-  }).format(new Date(value));
 }
 
 function FeedToggle() {
@@ -79,7 +50,7 @@ function PreviewBanner() {
   );
 }
 
-function AuthorRow({ item }: { item: FeedItem }) {
+function AuthorRow({ item }: { item: FeedContentItem }) {
   const sourceLabel = item.source === "self" ? "내 글" : "팔로우";
   const sourceClassName =
     item.source === "self"
@@ -97,7 +68,8 @@ function AuthorRow({ item }: { item: FeedItem }) {
             {item.author.displayName}
           </p>
           <p className="mt-1 truncate text-[11px] tracking-[0.16em] text-on-surface-variant uppercase">
-            @{item.author.handle} · {formatRelativeTime(item.createdAt)}
+            @{item.author.handle} ·{" "}
+            <time dateTime={item.createdAt}>{item.createdAtLabel}</time>
           </p>
         </div>
       </div>
@@ -136,7 +108,7 @@ function SummaryTile({
   );
 }
 
-function HandReviewCard({ item }: { item: FeedItem }) {
+function HandReviewCard({ item }: { item: FeedContentItem }) {
   return (
     <article className="premium-card rounded-[30px] px-5 py-5">
       <AuthorRow item={item} />
@@ -182,7 +154,7 @@ function HandReviewCard({ item }: { item: FeedItem }) {
   );
 }
 
-function FreePostCard({ item }: { item: FeedItem }) {
+function FreePostCard({ item }: { item: FeedContentItem }) {
   return (
     <article className="premium-card rounded-[30px] px-5 py-5">
       <AuthorRow item={item} />
@@ -304,7 +276,7 @@ function FeedStateCard({
   );
 }
 
-export function FeedContent({ data }: { data: FeedData }) {
+export function FeedContent({ data }: { data: FeedContentData }) {
   return (
     <>
       {data.isPreview ? <PreviewBanner /> : null}

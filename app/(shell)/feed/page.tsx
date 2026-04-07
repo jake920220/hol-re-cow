@@ -1,5 +1,6 @@
 import { AppShell } from "@/components/app-shell";
 import { FeedContent } from "@/components/feed/feed-content";
+import { buildFeedContentData } from "@/lib/feed/feed-content-data";
 import { getFeedData } from "@/lib/server/feed";
 
 export const dynamic = "force-dynamic";
@@ -14,7 +15,9 @@ export default async function FeedPage({
   searchParams?: Promise<{ preview?: string | string[] }>;
 }) {
   const params = (await searchParams) ?? {};
-  const data = await getFeedData(readPreviewParam(params.preview));
+  const data = buildFeedContentData(
+    await getFeedData(readPreviewParam(params.preview)),
+  );
 
   return (
     <AppShell
