@@ -164,6 +164,7 @@ async function preflight(repoRoot, runtimeRoot) {
 
   await runCapture("which", ["codex"], { cwd: repoRoot });
   await runCapture("which", ["gh"], { cwd: repoRoot });
+  await runCapture("gh", ["auth", "switch", "-u", PHASE_GITHUB_LOGIN], { cwd: repoRoot });
   await runCapture("gh", ["auth", "status"], { cwd: repoRoot });
   await runCapture(path.join(repoRoot, "scripts", "gh-review"), ["auth", "status"], {
     cwd: repoRoot,
@@ -176,6 +177,10 @@ async function preflight(repoRoot, runtimeRoot) {
       `Harness must start from a clean worktree.\n${dirtyLines.join("\n")}`,
     );
   }
+}
+
+async function ensurePhaseGitHubAccount(cwd) {
+  await runCapture("gh", ["auth", "switch", "-u", PHASE_GITHUB_LOGIN], { cwd });
 }
 
 async function listWorktrees(repoRoot) {
@@ -614,6 +619,8 @@ async function pushBranch(worktree, branch, dryRun) {
     return;
   }
 
+  await ensurePhaseGitHubAccount(worktree);
+
   const firstAttempt = await runCapture("git", args, { cwd: worktree, allowFailure: true });
 
   if (firstAttempt.code === 0) {
@@ -624,6 +631,7 @@ async function pushBranch(worktree, branch, dryRun) {
 }
 
 async function resolvePullRequest(worktree, branch) {
+  await ensurePhaseGitHubAccount(worktree);
   const result = await runCapture(
     "gh",
     ["pr", "view", branch, "--json", "number,url,state"],
@@ -664,6 +672,8 @@ async function createPullRequest(worktree, branch, phaseResult, config, dryRun, 
       url: `https://example.com/${branch}`,
     };
   }
+
+  await ensurePhaseGitHubAccount(worktree);
 
   await runCapture(
     "gh",
@@ -723,6 +733,8 @@ async function postPhaseComment(worktree, prNumber, body, dryRun) {
     return;
   }
 
+  await ensurePhaseGitHubAccount(worktree);
+
   await runCapture(
     "gh",
     ["pr", "comment", String(prNumber), "--body-file", bodyPath],
@@ -738,6 +750,8 @@ async function mergePullRequest(worktree, prNumber, headSha, pollMs, timeoutMs, 
       mergeCommit: { oid: "dry-run" },
     };
   }
+
+  await ensurePhaseGitHubAccount(worktree);
 
   await runCapture(
     "gh",
