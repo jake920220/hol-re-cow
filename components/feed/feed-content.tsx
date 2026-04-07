@@ -1,4 +1,7 @@
+"use client";
+
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import type { FeedData, FeedItem } from "@/lib/server/feed";
 
 function truncateText(value: string, length: number) {
@@ -215,20 +218,34 @@ function StateActions({
   primaryLabel,
   secondaryHref,
   secondaryLabel,
+  primaryAction = "link",
 }: {
   primaryHref: string;
   primaryLabel: string;
   secondaryHref: string;
   secondaryLabel: string;
+  primaryAction?: "link" | "refresh";
 }) {
+  const router = useRouter();
+
   return (
     <div className="mt-5 flex flex-col gap-3 sm:flex-row">
-      <Link
-        href={primaryHref}
-        className="flex min-h-11 flex-1 items-center justify-center rounded-[16px] border border-primary/20 bg-primary px-4 py-3 text-sm font-semibold text-[#143727] transition hover:brightness-105"
-      >
-        {primaryLabel}
-      </Link>
+      {primaryAction === "refresh" ? (
+        <button
+          type="button"
+          onClick={() => router.refresh()}
+          className="flex min-h-11 flex-1 items-center justify-center rounded-[16px] border border-primary/20 bg-primary px-4 py-3 text-sm font-semibold text-[#143727] transition hover:brightness-105"
+        >
+          {primaryLabel}
+        </button>
+      ) : (
+        <Link
+          href={primaryHref}
+          className="flex min-h-11 flex-1 items-center justify-center rounded-[16px] border border-primary/20 bg-primary px-4 py-3 text-sm font-semibold text-[#143727] transition hover:brightness-105"
+        >
+          {primaryLabel}
+        </Link>
+      )}
       <Link
         href={secondaryHref}
         className="flex min-h-11 flex-1 items-center justify-center rounded-[16px] border border-outline-variant/30 bg-surface-low px-4 py-3 text-sm font-semibold text-on-surface"
@@ -248,6 +265,7 @@ function FeedStateCard({
   secondaryHref,
   secondaryLabel,
   tone = "default",
+  primaryAction = "link",
 }: {
   badge: string;
   title: string;
@@ -257,6 +275,7 @@ function FeedStateCard({
   secondaryHref: string;
   secondaryLabel: string;
   tone?: "default" | "error";
+  primaryAction?: "link" | "refresh";
 }) {
   const badgeClassName =
     tone === "error"
@@ -279,6 +298,7 @@ function FeedStateCard({
         primaryLabel={primaryLabel}
         secondaryHref={secondaryHref}
         secondaryLabel={secondaryLabel}
+        primaryAction={primaryAction}
       />
     </article>
   );
@@ -332,10 +352,11 @@ export function FeedContent({ data }: { data: FeedData }) {
           badge="No Posts"
           title="피드에 올라온 게시글이 아직 없어요"
           description={`현재 팔로우한 플레이어 ${data.followingCount}명의 published 글과 내 글을 확인했지만 아직 표시할 게시글이 없습니다.`}
-          primaryHref="/create"
-          primaryLabel="새 글 작성하기"
-          secondaryHref="/feed"
-          secondaryLabel="다시 확인하기"
+          primaryHref="/feed"
+          primaryLabel="다시 확인하기"
+          secondaryHref="/create"
+          secondaryLabel="새 글 작성하기"
+          primaryAction="refresh"
         />
       ) : null}
 
@@ -349,6 +370,7 @@ export function FeedContent({ data }: { data: FeedData }) {
           secondaryHref="/create"
           secondaryLabel="작성 화면 보기"
           tone="error"
+          primaryAction="refresh"
         />
       ) : null}
     </>
