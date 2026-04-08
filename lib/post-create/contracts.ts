@@ -1,0 +1,365 @@
+export const postCreateRouteByType = {
+  hand_review: "/create/hand-review",
+  free_post: "/create/free-post",
+} as const;
+
+export type PostCreateType = keyof typeof postCreateRouteByType;
+export type PostCreateIntent = "draft" | "publish";
+export type PostSaveStatus = "draft" | "published";
+export type ActionStatus = "idle" | "success" | "error";
+
+export type PostCreateAccessState = {
+  envReady: boolean;
+  isAuthenticated: boolean;
+};
+
+export type FieldErrors<T extends string> = Partial<Record<T, string>>;
+
+type BaseActionState<T extends string> = {
+  status: ActionStatus;
+  message: string | null;
+  savedAs: PostSaveStatus | null;
+  fieldErrors: FieldErrors<T>;
+  submissionId: number;
+};
+
+export type FreePostField = "title" | "body";
+
+export type FreePostValues = {
+  title: string;
+  body: string;
+};
+
+export type FreePostActionState = BaseActionState<FreePostField>;
+
+export const freePostFieldLabels: Record<FreePostField, string> = {
+  title: "제목",
+  body: "본문",
+};
+
+export const emptyFreePostValues: FreePostValues = {
+  title: "",
+  body: "",
+};
+
+export const initialFreePostActionState: FreePostActionState = {
+  status: "idle",
+  message: null,
+  savedAs: null,
+  fieldErrors: {},
+  submissionId: 0,
+};
+
+export type HandReviewField =
+  | "title"
+  | "body"
+  | "gameType"
+  | "stakesLabel"
+  | "heroPosition"
+  | "heroCards"
+  | "boardFlop"
+  | "boardTurn"
+  | "boardRiver"
+  | "actionSummary"
+  | "question"
+  | "resultSummary";
+
+export type HandReviewValues = {
+  title: string;
+  body: string;
+  gameType: string;
+  stakesLabel: string;
+  heroPosition: string;
+  heroCards: string;
+  boardFlop: string;
+  boardTurn: string;
+  boardRiver: string;
+  actionSummary: string;
+  question: string;
+  resultSummary: string;
+};
+
+export type HandReviewActionState = BaseActionState<HandReviewField>;
+
+export const handReviewFieldLabels: Record<HandReviewField, string> = {
+  title: "리뷰 제목",
+  body: "상황 설명",
+  gameType: "게임 타입",
+  stakesLabel: "스테이크",
+  heroPosition: "내 포지션",
+  heroCards: "내 핸드",
+  boardFlop: "플랍 보드",
+  boardTurn: "턴 보드",
+  boardRiver: "리버 보드",
+  actionSummary: "액션 흐름",
+  question: "리뷰 질문",
+  resultSummary: "결과 요약",
+};
+
+export const emptyHandReviewValues: HandReviewValues = {
+  title: "",
+  body: "",
+  gameType: "",
+  stakesLabel: "",
+  heroPosition: "",
+  heroCards: "",
+  boardFlop: "",
+  boardTurn: "",
+  boardRiver: "",
+  actionSummary: "",
+  question: "",
+  resultSummary: "",
+};
+
+export const initialHandReviewActionState: HandReviewActionState = {
+  status: "idle",
+  message: null,
+  savedAs: null,
+  fieldErrors: {},
+  submissionId: 0,
+};
+
+export const handReviewGameTypeOptions = [
+  { value: "cash", label: "캐시 게임" },
+  { value: "tournament", label: "토너먼트" },
+] as const;
+
+export const heroPositionOptions = [
+  { value: "UTG", label: "UTG" },
+  { value: "HJ", label: "HJ" },
+  { value: "CO", label: "CO" },
+  { value: "BTN", label: "BTN" },
+  { value: "SB", label: "SB" },
+  { value: "BB", label: "BB" },
+] as const;
+
+const gameTypeValues = new Set<string>(
+  handReviewGameTypeOptions.map((option) => option.value),
+);
+const heroPositionValues = new Set<string>(
+  heroPositionOptions.map((option) => option.value),
+);
+const cardPattern = /^(?:[2-9TJQKA]|10)[shdc]$/i;
+const unicodeSuitMap: Record<string, string> = {
+  "♠": "s",
+  "♣": "c",
+  "♥": "h",
+  "♦": "d",
+};
+
+function readValue(formData: FormData, key: string) {
+  const value = formData.get(key);
+  return typeof value === "string" ? value.trim() : "";
+}
+
+function splitCards(value: string) {
+  return value
+    .replace(/[♠♣♥♦]/g, (match) => unicodeSuitMap[match] ?? match)
+    .split(/[\s,/]+/)
+    .map((token) => token.trim())
+    .filter(Boolean);
+}
+
+function normalizeCardToken(token: string) {
+  const normalized = token.replace(/[♠♣♥♦]/g, (match) => unicodeSuitMap[match] ?? match);
+  const suit = normalized.slice(-1).toLowerCase();
+  const rank = normalized.slice(0, -1).toUpperCase();
+  const normalizedRank = rank === "10" ? "T" : rank;
+  return `${normalizedRank}${suit}`;
+}
+
+function parseCardGroup(value: string, expectedCount?: number) {
+  const tokens = splitCards(value);
+
+  if (tokens.length === 0) {
+    return {
+      cards: [] as string[],
+      error: expectedCount ? `카드를 ${expectedCount}장 입력해 주세요.` : null,
+    };
+  }
+
+  if (expectedCount && tokens.length !== expectedCount) {
+    return {
+      cards: [] as string[],
+      error: `카드를 ${expectedCount}장 입력해 주세요.`,
+    };
+  }
+
+  const normalizedCards = tokens.map(normalizeCardToken);
+  const invalidCard = normalizedCards.find((card) => !cardPattern.test(card));
+
+  if (invalidCard) {
+    return {
+      cards: [] as string[],
+      error: "`As`, `Kd` 같은 형식으로 입력해 주세요.",
+    };
+  }
+
+  return {
+    cards: normalizedCards,
+    error: null,
+  };
+}
+
+export function readIntent(formData: FormData): PostCreateIntent {
+  return formData.get("intent") === "draft" ? "draft" : "publish";
+}
+
+export function readFreePostValues(formData: FormData): FreePostValues {
+  return {
+    title: readValue(formData, "title"),
+    body: readValue(formData, "body"),
+  };
+}
+
+export function hasFreePostDraftContent(values: FreePostValues) {
+  return Boolean(values.title || values.body);
+}
+
+export function getFreePostPublishErrors(values: FreePostValues): FieldErrors<FreePostField> {
+  const errors: FieldErrors<FreePostField> = {};
+
+  if (!values.title) {
+    errors.title = "제목을 입력해 주세요.";
+  }
+
+  if (!values.body) {
+    errors.body = "본문을 입력해 주세요.";
+  }
+
+  return errors;
+}
+
+export function getFreePostDraftError(values: FreePostValues) {
+  return hasFreePostDraftContent(values)
+    ? null
+    : "초안 저장을 시작하려면 제목 또는 본문을 먼저 입력해 주세요.";
+}
+
+export function readHandReviewValues(formData: FormData): HandReviewValues {
+  return {
+    title: readValue(formData, "title"),
+    body: readValue(formData, "body"),
+    gameType: readValue(formData, "gameType"),
+    stakesLabel: readValue(formData, "stakesLabel"),
+    heroPosition: readValue(formData, "heroPosition"),
+    heroCards: readValue(formData, "heroCards"),
+    boardFlop: readValue(formData, "boardFlop"),
+    boardTurn: readValue(formData, "boardTurn"),
+    boardRiver: readValue(formData, "boardRiver"),
+    actionSummary: readValue(formData, "actionSummary"),
+    question: readValue(formData, "question"),
+    resultSummary: readValue(formData, "resultSummary"),
+  };
+}
+
+export function hasHandReviewDraftContent(values: HandReviewValues) {
+  return Object.values(values).some(Boolean);
+}
+
+export function getHandReviewDraftErrors(
+  values: HandReviewValues,
+): FieldErrors<HandReviewField> {
+  const errors: FieldErrors<HandReviewField> = {};
+
+  if (values.gameType && !gameTypeValues.has(values.gameType)) {
+    errors.gameType = "게임 타입을 다시 선택해 주세요.";
+  }
+
+  if (values.heroPosition && !heroPositionValues.has(values.heroPosition)) {
+    errors.heroPosition = "포지션을 다시 선택해 주세요.";
+  }
+
+  if (values.heroCards) {
+    const heroCards = parseCardGroup(values.heroCards, 2);
+
+    if (heroCards.error) {
+      errors.heroCards = heroCards.error;
+    }
+  }
+
+  if (values.boardTurn && !values.boardFlop) {
+    errors.boardFlop = "턴 카드를 적기 전에 플랍 보드를 먼저 입력해 주세요.";
+  }
+
+  if (values.boardRiver && !values.boardTurn) {
+    errors.boardTurn = "리버 카드를 적기 전에 턴 카드를 먼저 입력해 주세요.";
+  }
+
+  if (values.boardFlop) {
+    const flopCards = parseCardGroup(values.boardFlop, 3);
+
+    if (flopCards.error) {
+      errors.boardFlop = "플랍 보드는 카드 3장으로 입력해 주세요.";
+    }
+  }
+
+  if (values.boardTurn) {
+    const turnCard = parseCardGroup(values.boardTurn, 1);
+
+    if (turnCard.error) {
+      errors.boardTurn = "턴 카드는 1장만 입력해 주세요.";
+    }
+  }
+
+  if (values.boardRiver) {
+    const riverCard = parseCardGroup(values.boardRiver, 1);
+
+    if (riverCard.error) {
+      errors.boardRiver = "리버 카드는 1장만 입력해 주세요.";
+    }
+  }
+
+  return errors;
+}
+
+export function getHandReviewPublishErrors(
+  values: HandReviewValues,
+): FieldErrors<HandReviewField> {
+  const errors: FieldErrors<HandReviewField> = {
+    ...getHandReviewDraftErrors(values),
+  };
+
+  if (!gameTypeValues.has(values.gameType)) {
+    errors.gameType = "게임 타입을 선택해 주세요.";
+  }
+
+  if (!heroPositionValues.has(values.heroPosition)) {
+    errors.heroPosition = "내 포지션을 선택해 주세요.";
+  }
+
+  if (!values.actionSummary) {
+    errors.actionSummary = "액션 흐름을 입력해 주세요.";
+  }
+
+  if (!values.question) {
+    errors.question = "리뷰 질문을 입력해 주세요.";
+  }
+
+  if (!values.heroCards) {
+    errors.heroCards = "카드를 2장 입력해 주세요.";
+  }
+
+  return errors;
+}
+
+export function getHandReviewDraftError(values: HandReviewValues) {
+  if (!hasHandReviewDraftContent(values)) {
+    return "초안 저장을 시작하려면 한 칸이라도 먼저 입력해 주세요.";
+  }
+
+  return Object.keys(getHandReviewDraftErrors(values)).length > 0
+    ? "카드 형식과 보드 순서를 먼저 확인해 주세요."
+    : null;
+}
+
+export function normalizeHandReviewCards(values: HandReviewValues) {
+  return {
+    heroCards: parseCardGroup(values.heroCards, 2).cards,
+    boardFlop: values.boardFlop ? parseCardGroup(values.boardFlop, 3).cards : [],
+    boardTurn: values.boardTurn ? parseCardGroup(values.boardTurn, 1).cards[0] : null,
+    boardRiver: values.boardRiver
+      ? parseCardGroup(values.boardRiver, 1).cards[0]
+      : null,
+  };
+}
