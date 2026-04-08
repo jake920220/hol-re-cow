@@ -148,9 +148,13 @@ const unicodeSuitMap: Record<string, string> = {
 };
 const duplicateCardErrorMessage = "중복된 카드는 입력할 수 없습니다.";
 
+function normalizeValue(value: string) {
+  return value.trim();
+}
+
 function readValue(formData: FormData, key: string) {
   const value = formData.get(key);
-  return typeof value === "string" ? value.trim() : "";
+  return typeof value === "string" ? normalizeValue(value) : "";
 }
 
 function splitCards(value: string) {
@@ -258,18 +262,27 @@ export function readFreePostValues(formData: FormData): FreePostValues {
   };
 }
 
+function normalizeFreePostValues(values: FreePostValues): FreePostValues {
+  return {
+    title: normalizeValue(values.title),
+    body: normalizeValue(values.body),
+  };
+}
+
 export function hasFreePostDraftContent(values: FreePostValues) {
-  return Boolean(values.title || values.body);
+  const normalizedValues = normalizeFreePostValues(values);
+  return Boolean(normalizedValues.title || normalizedValues.body);
 }
 
 export function getFreePostPublishErrors(values: FreePostValues): FieldErrors<FreePostField> {
+  const normalizedValues = normalizeFreePostValues(values);
   const errors: FieldErrors<FreePostField> = {};
 
-  if (!values.title) {
+  if (!normalizedValues.title) {
     errors.title = "제목을 입력해 주세요.";
   }
 
-  if (!values.body) {
+  if (!normalizedValues.body) {
     errors.body = "본문을 입력해 주세요.";
   }
 
@@ -299,51 +312,69 @@ export function readHandReviewValues(formData: FormData): HandReviewValues {
   };
 }
 
+function normalizeHandReviewValues(values: HandReviewValues): HandReviewValues {
+  return {
+    title: normalizeValue(values.title),
+    body: normalizeValue(values.body),
+    gameType: normalizeValue(values.gameType),
+    stakesLabel: normalizeValue(values.stakesLabel),
+    heroPosition: normalizeValue(values.heroPosition),
+    heroCards: normalizeValue(values.heroCards),
+    boardFlop: normalizeValue(values.boardFlop),
+    boardTurn: normalizeValue(values.boardTurn),
+    boardRiver: normalizeValue(values.boardRiver),
+    actionSummary: normalizeValue(values.actionSummary),
+    question: normalizeValue(values.question),
+    resultSummary: normalizeValue(values.resultSummary),
+  };
+}
+
 export function hasHandReviewDraftContent(values: HandReviewValues) {
-  return Object.values(values).some(Boolean);
+  return Object.values(normalizeHandReviewValues(values)).some(Boolean);
 }
 
 export function getHandReviewDraftErrors(
   values: HandReviewValues,
 ): FieldErrors<HandReviewField> {
+  const normalizedValues = normalizeHandReviewValues(values);
   const errors: FieldErrors<HandReviewField> = {};
-  const parsedCards = parseHandReviewCardGroups(values);
+  const parsedCards = parseHandReviewCardGroups(normalizedValues);
 
-  if (values.gameType && !gameTypeValues.has(values.gameType)) {
+  if (normalizedValues.gameType && !gameTypeValues.has(normalizedValues.gameType)) {
     errors.gameType = "게임 타입을 다시 선택해 주세요.";
   }
 
-  if (values.heroPosition && !heroPositionValues.has(values.heroPosition)) {
+  if (normalizedValues.heroPosition && !heroPositionValues.has(normalizedValues.heroPosition)) {
     errors.heroPosition = "포지션을 다시 선택해 주세요.";
   }
 
-  if (values.heroCards) {
+  if (normalizedValues.heroCards) {
     if (parsedCards.heroCards.error) {
       errors.heroCards = parsedCards.heroCards.error;
     }
   }
 
-  if (values.boardTurn && !values.boardFlop) {
+  if (normalizedValues.boardTurn && !normalizedValues.boardFlop) {
     errors.boardFlop = "턴 카드를 적기 전에 플랍 보드를 먼저 입력해 주세요.";
   }
 
-  if (values.boardRiver && !values.boardTurn) {
+  if (normalizedValues.boardRiver && !normalizedValues.boardTurn) {
     errors.boardTurn = "리버 카드를 적기 전에 턴 카드를 먼저 입력해 주세요.";
   }
 
-  if (values.boardFlop) {
+  if (normalizedValues.boardFlop) {
     if (parsedCards.boardFlop.error) {
       errors.boardFlop = "플랍 보드는 카드 3장으로 입력해 주세요.";
     }
   }
 
-  if (values.boardTurn) {
+  if (normalizedValues.boardTurn) {
     if (parsedCards.boardTurn.error) {
       errors.boardTurn = "턴 카드는 1장만 입력해 주세요.";
     }
   }
 
-  if (values.boardRiver) {
+  if (normalizedValues.boardRiver) {
     if (parsedCards.boardRiver.error) {
       errors.boardRiver = "리버 카드는 1장만 입력해 주세요.";
     }
@@ -366,27 +397,28 @@ export function getHandReviewDraftErrors(
 export function getHandReviewPublishErrors(
   values: HandReviewValues,
 ): FieldErrors<HandReviewField> {
+  const normalizedValues = normalizeHandReviewValues(values);
   const errors: FieldErrors<HandReviewField> = {
-    ...getHandReviewDraftErrors(values),
+    ...getHandReviewDraftErrors(normalizedValues),
   };
 
-  if (!gameTypeValues.has(values.gameType)) {
+  if (!gameTypeValues.has(normalizedValues.gameType)) {
     errors.gameType = "게임 타입을 선택해 주세요.";
   }
 
-  if (!heroPositionValues.has(values.heroPosition)) {
+  if (!heroPositionValues.has(normalizedValues.heroPosition)) {
     errors.heroPosition = "내 포지션을 선택해 주세요.";
   }
 
-  if (!values.actionSummary) {
+  if (!normalizedValues.actionSummary) {
     errors.actionSummary = "액션 흐름을 입력해 주세요.";
   }
 
-  if (!values.question) {
+  if (!normalizedValues.question) {
     errors.question = "리뷰 질문을 입력해 주세요.";
   }
 
-  if (!values.heroCards) {
+  if (!normalizedValues.heroCards) {
     errors.heroCards = "카드를 2장 입력해 주세요.";
   }
 
@@ -404,7 +436,7 @@ export function getHandReviewDraftError(values: HandReviewValues) {
 }
 
 export function normalizeHandReviewCards(values: HandReviewValues) {
-  const parsedCards = parseHandReviewCardGroups(values);
+  const parsedCards = parseHandReviewCardGroups(normalizeHandReviewValues(values));
 
   return {
     heroCards: parsedCards.heroCards.cards,
