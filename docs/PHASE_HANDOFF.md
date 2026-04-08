@@ -78,7 +78,7 @@ git worktree add -b review/01-project-shell ../wt-holrecow-review-01-project-she
    - `docs/DB_SCHEMA.md`
    - `docs/DESIGN.md`
    - `docs/PHASE_HANDOFF.md`
-4. `scripts/gh-review auth status`로 리뷰 봇 계정 상태를 확인한다.
+4. `gh auth status`와 `gh api user`로 같은 GitHub 계정 `jake920220` 이 활성화돼 있는지 확인한다.
 5. 이번 phase의 목표와 범위를 다시 적는다.
 6. PR 번호 또는 URL을 기준으로 리뷰를 진행한다.
 
@@ -111,8 +111,7 @@ git worktree add -b review/01-project-shell ../wt-holrecow-review-01-project-she
 
 - PR diff 읽기
 - 로컬 검증 실행
-- GitHub review comment 남기기
-- GitHub approval 또는 request changes 남기기
+- `[리뷰어]` 태그가 붙은 GitHub PR 코멘트 남기기
 - 남은 리스크 정리
 
 리뷰 세션은 아래를 하지 않는다.
@@ -143,37 +142,28 @@ git worktree add -b review/01-project-shell ../wt-holrecow-review-01-project-she
 
 - 구현 세션은 현재 사용 중인 기본 GitHub 계정을 사용한다.
 - PR 생성, push, 브랜치 관리도 구현 세션 계정으로 한다.
+- 홀리카우 하네스 기준 구현 세션 계정은 `jake920220` 으로 고정한다.
+- 리뷰 결과를 반영하는 추가 커밋, PR 대댓글, reconcile 코멘트, 최종 merge 도 구현 세션 계정이 담당한다.
+- 구현 세션이 PR 본문 또는 PR 코멘트를 남길 때는 항상 앞에 `[구현자]` 태그를 붙인다.
 
 ### 리뷰 세션
 
-- 리뷰 세션은 별도의 GitHub 봇 계정으로 GitHub review comment를 남긴다.
+- 리뷰 세션도 같은 GitHub 계정 `jake920220` 을 사용한다.
+- 같은 계정으로는 자기 PR에 공식 approve/request-changes review 를 남길 수 없으므로, 리뷰 세션은 `[리뷰어]` 태그가 붙은 PR 코멘트만 남긴다.
 - 로컬 git `user.name` / `user.email`은 리뷰 세션에서 중요하지 않다. 리뷰 세션은 커밋하지 않기 때문이다.
-- 리뷰 세션의 GitHub 인증은 `gh` CLI 전용 별도 config 디렉터리로 분리한다.
-
-### 리뷰 봇 계정 로그인
-
-한 번만 아래처럼 로그인해두면 된다.
-
-```bash
-GH_CONFIG_DIR="$HOME/.config/gh-holrecow-review-bot" gh auth login --web --hostname github.com
-```
-
-- 여기서 브라우저에 뜨는 GitHub 로그인 화면에서 봇 계정으로 로그인한다.
-- GitHub 계정이 Google OAuth로 만들어진 계정이어도, GitHub 웹 로그인만 되면 `gh auth login --web`로 사용할 수 있다.
+- 리뷰 세션은 코드 수정/merge 를 맡지 않는다.
 
 ### 리뷰 세션에서 `gh` 사용 규칙
 
-- 리뷰 세션은 항상 `scripts/gh-review` 래퍼를 사용한다.
-- plain `gh` 대신 아래처럼 쓴다.
-- GitHub 계정 분리가 필요한 경우, Codex의 GitHub 앱 커넥터 대신 `scripts/gh-review`를 우선 사용한다.
+- 리뷰 세션은 plain `gh`만 사용한다.
+- 모든 GitHub 읽기/코멘트 주체는 같은 계정 `jake920220` 이다.
+- 리뷰 코멘트 본문 맨 앞에는 반드시 `[리뷰어]` 태그를 붙인다.
 
 ```bash
-scripts/gh-review auth status
-scripts/gh-review pr view <PR_NUMBER> --comments
-scripts/gh-review pr review <PR_NUMBER> --comment --body "..."
+gh api user
+gh pr view <PR_NUMBER> --comments
+gh pr comment <PR_NUMBER> --body "[리뷰어] ..."
 ```
-
-- 이렇게 해야 리뷰 세션만 봇 계정 config를 사용하고, 구현 세션의 기본 계정과 충돌하지 않는다.
 
 ## 다음 phase로 넘어갈 때
 
@@ -195,8 +185,8 @@ docs/PHASE_HANDOFF.md를 먼저 읽고,
 AGENTS.md, docs/GIT_RULES.md, docs/DB_SCHEMA.md, docs/DESIGN.md를 확인한 다음
 phase n PR 리뷰를 진행해줘.
 
-리뷰 세션에서는 scripts/gh-review만 사용해서 GitHub 코멘트를 남겨줘.
-코드는 수정하지 말고, PR을 읽고 검증한 뒤 review comment 또는 request changes를 남겨줘.
+리뷰 세션에서는 같은 계정 `jake920220` 으로 GitHub 코멘트를 남겨줘.
+코드는 수정하지 말고, PR을 읽고 검증한 뒤 `[리뷰어]` 태그가 붙은 코멘트를 남겨줘.
 
 우선순위:
 1. 범위 일탈
