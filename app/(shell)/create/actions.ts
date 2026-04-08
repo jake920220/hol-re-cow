@@ -29,8 +29,12 @@ function createWriteErrorMessage(error: PostgrestError | null) {
     return "게시글 저장 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.";
   }
 
-  if (error.code === "23503" || error.code === "42P01") {
+  if (error.code === "23503" || error.code === "42P01" || error.code === "42883") {
     return "DB 스키마가 아직 준비되지 않았습니다. migration 적용 여부를 확인해 주세요.";
+  }
+
+  if (error.code === "23514") {
+    return "핸드리뷰 입력값을 다시 확인해 주세요.";
   }
 
   return "게시글 저장 중 오류가 발생했습니다. RLS와 migration 상태를 확인해 주세요.";
@@ -212,48 +216,27 @@ export async function createHandReviewAction(
     values.question ||
     (generatedTitle ? `${generatedTitle} 리뷰 요청` : "핸드리뷰 초안");
 
-  const { data: post, error: postError } = await supabase
-    .from("posts")
-    .insert({
-      author_id: user.id,
-      post_type: "hand_review",
-      status,
-      title,
-      body: values.body || values.question || values.actionSummary || title,
-    })
-    .select("id")
-    .single();
-
-  if (postError || !post) {
-    return {
-      ...initialHandReviewActionState,
-      status: "error",
-      message: createWriteErrorMessage(postError),
-      submissionId: createSubmissionId(),
-    };
-  }
-
-  const { error: handReviewError } = await supabase.from("hand_reviews").insert({
-    post_id: post.id,
-    game_type: values.gameType || null,
-    stakes_label: values.stakesLabel || null,
-    hero_position: values.heroPosition || null,
-    hero_cards: normalizedCards.heroCards.length === 2 ? normalizedCards.heroCards : null,
-    board_flop: normalizedCards.boardFlop.length > 0 ? normalizedCards.boardFlop : null,
-    board_turn: normalizedCards.boardTurn,
-    board_river: normalizedCards.boardRiver,
-    action_summary: values.actionSummary || null,
-    question: values.question || null,
-    result_summary: values.resultSummary || null,
+  const { error } = await supabase.rpc("create_hand_review_post", {
+    input_status: status,
+    input_title: title,
+    input_body: values.body || values.question || values.actionSummary || title,
+    input_game_type: values.gameType || null,
+    input_stakes_label: values.stakesLabel || null,
+    input_hero_position: values.heroPosition || null,
+    input_hero_cards: normalizedCards.heroCards.length === 2 ? normalizedCards.heroCards : null,
+    input_board_flop: normalizedCards.boardFlop.length > 0 ? normalizedCards.boardFlop : null,
+    input_board_turn: normalizedCards.boardTurn,
+    input_board_river: normalizedCards.boardRiver,
+    input_action_summary: values.actionSummary || null,
+    input_question: values.question || null,
+    input_result_summary: values.resultSummary || null,
   });
 
-  if (handReviewError) {
-    await supabase.from("posts").delete().eq("id", post.id);
-
+  if (error) {
     return {
       ...initialHandReviewActionState,
       status: "error",
-      message: createWriteErrorMessage(handReviewError),
+      message: createWriteErrorMessage(error),
       submissionId: createSubmissionId(),
     };
   }

@@ -146,6 +146,7 @@ const unicodeSuitMap: Record<string, string> = {
   "♥": "h",
   "♦": "d",
 };
+const duplicateCardErrorMessage = "중복된 카드는 입력할 수 없습니다.";
 
 function readValue(formData: FormData, key: string) {
   const value = formData.get(key);
@@ -199,6 +200,51 @@ function parseCardGroup(value: string, expectedCount?: number) {
     cards: normalizedCards,
     error: null,
   };
+}
+
+function createEmptyCardGroup() {
+  return {
+    cards: [] as string[],
+    error: null as string | null,
+  };
+}
+
+function parseHandReviewCardGroups(values: HandReviewValues) {
+  return {
+    heroCards: values.heroCards ? parseCardGroup(values.heroCards, 2) : createEmptyCardGroup(),
+    boardFlop: values.boardFlop ? parseCardGroup(values.boardFlop, 3) : createEmptyCardGroup(),
+    boardTurn: values.boardTurn ? parseCardGroup(values.boardTurn, 1) : createEmptyCardGroup(),
+    boardRiver: values.boardRiver ? parseCardGroup(values.boardRiver, 1) : createEmptyCardGroup(),
+  };
+}
+
+function getDuplicateCardFields(
+  parsedCards: ReturnType<typeof parseHandReviewCardGroups>,
+): HandReviewField[] {
+  const cardToFields = new Map<string, HandReviewField[]>();
+
+  const appendCards = (field: HandReviewField, cards: string[]) => {
+    cards.forEach((card) => {
+      const fields = cardToFields.get(card) ?? [];
+      fields.push(field);
+      cardToFields.set(card, fields);
+    });
+  };
+
+  appendCards("heroCards", parsedCards.heroCards.cards);
+  appendCards("boardFlop", parsedCards.boardFlop.cards);
+  appendCards("boardTurn", parsedCards.boardTurn.cards);
+  appendCards("boardRiver", parsedCards.boardRiver.cards);
+
+  const duplicateFields = new Set<HandReviewField>();
+
+  cardToFields.forEach((fields) => {
+    if (fields.length > 1) {
+      fields.forEach((field) => duplicateFields.add(field));
+    }
+  });
+
+  return Array.from(duplicateFields);
 }
 
 export function readIntent(formData: FormData): PostCreateIntent {
@@ -261,6 +307,7 @@ export function getHandReviewDraftErrors(
   values: HandReviewValues,
 ): FieldErrors<HandReviewField> {
   const errors: FieldErrors<HandReviewField> = {};
+  const parsedCards = parseHandReviewCardGroups(values);
 
   if (values.gameType && !gameTypeValues.has(values.gameType)) {
     errors.gameType = "게임 타입을 다시 선택해 주세요.";
@@ -271,10 +318,8 @@ export function getHandReviewDraftErrors(
   }
 
   if (values.heroCards) {
-    const heroCards = parseCardGroup(values.heroCards, 2);
-
-    if (heroCards.error) {
-      errors.heroCards = heroCards.error;
+    if (parsedCards.heroCards.error) {
+      errors.heroCards = parsedCards.heroCards.error;
     }
   }
 
@@ -287,27 +332,32 @@ export function getHandReviewDraftErrors(
   }
 
   if (values.boardFlop) {
-    const flopCards = parseCardGroup(values.boardFlop, 3);
-
-    if (flopCards.error) {
+    if (parsedCards.boardFlop.error) {
       errors.boardFlop = "플랍 보드는 카드 3장으로 입력해 주세요.";
     }
   }
 
   if (values.boardTurn) {
-    const turnCard = parseCardGroup(values.boardTurn, 1);
-
-    if (turnCard.error) {
+    if (parsedCards.boardTurn.error) {
       errors.boardTurn = "턴 카드는 1장만 입력해 주세요.";
     }
   }
 
   if (values.boardRiver) {
-    const riverCard = parseCardGroup(values.boardRiver, 1);
-
-    if (riverCard.error) {
+    if (parsedCards.boardRiver.error) {
       errors.boardRiver = "리버 카드는 1장만 입력해 주세요.";
     }
+  }
+
+  if (
+    !parsedCards.heroCards.error &&
+    !parsedCards.boardFlop.error &&
+    !parsedCards.boardTurn.error &&
+    !parsedCards.boardRiver.error
+  ) {
+    getDuplicateCardFields(parsedCards).forEach((field) => {
+      errors[field] ??= duplicateCardErrorMessage;
+    });
   }
 
   return errors;
@@ -349,17 +399,17 @@ export function getHandReviewDraftError(values: HandReviewValues) {
   }
 
   return Object.keys(getHandReviewDraftErrors(values)).length > 0
-    ? "카드 형식과 보드 순서를 먼저 확인해 주세요."
+    ? "카드 형식, 중복 여부, 보드 순서를 먼저 확인해 주세요."
     : null;
 }
 
 export function normalizeHandReviewCards(values: HandReviewValues) {
+  const parsedCards = parseHandReviewCardGroups(values);
+
   return {
-    heroCards: parseCardGroup(values.heroCards, 2).cards,
-    boardFlop: values.boardFlop ? parseCardGroup(values.boardFlop, 3).cards : [],
-    boardTurn: values.boardTurn ? parseCardGroup(values.boardTurn, 1).cards[0] : null,
-    boardRiver: values.boardRiver
-      ? parseCardGroup(values.boardRiver, 1).cards[0]
-      : null,
+    heroCards: parsedCards.heroCards.cards,
+    boardFlop: parsedCards.boardFlop.cards,
+    boardTurn: parsedCards.boardTurn.cards[0] ?? null,
+    boardRiver: parsedCards.boardRiver.cards[0] ?? null,
   };
 }
