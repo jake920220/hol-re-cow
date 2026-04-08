@@ -148,9 +148,13 @@ const unicodeSuitMap: Record<string, string> = {
 };
 const duplicateCardErrorMessage = "중복된 카드는 입력할 수 없습니다.";
 
+function normalizeValue(value: string) {
+  return value.trim();
+}
+
 function readValue(formData: FormData, key: string) {
   const value = formData.get(key);
-  return typeof value === "string" ? value.trim() : "";
+  return typeof value === "string" ? normalizeValue(value) : "";
 }
 
 function splitCards(value: string) {
@@ -258,6 +262,13 @@ export function readFreePostValues(formData: FormData): FreePostValues {
   };
 }
 
+export function normalizeFreePostValues(values: FreePostValues): FreePostValues {
+  return {
+    title: normalizeValue(values.title),
+    body: normalizeValue(values.body),
+  };
+}
+
 export function hasFreePostDraftContent(values: FreePostValues) {
   return Boolean(values.title || values.body);
 }
@@ -296,6 +307,23 @@ export function readHandReviewValues(formData: FormData): HandReviewValues {
     actionSummary: readValue(formData, "actionSummary"),
     question: readValue(formData, "question"),
     resultSummary: readValue(formData, "resultSummary"),
+  };
+}
+
+export function normalizeHandReviewValues(values: HandReviewValues): HandReviewValues {
+  return {
+    title: normalizeValue(values.title),
+    body: normalizeValue(values.body),
+    gameType: normalizeValue(values.gameType),
+    stakesLabel: normalizeValue(values.stakesLabel),
+    heroPosition: normalizeValue(values.heroPosition),
+    heroCards: normalizeValue(values.heroCards),
+    boardFlop: normalizeValue(values.boardFlop),
+    boardTurn: normalizeValue(values.boardTurn),
+    boardRiver: normalizeValue(values.boardRiver),
+    actionSummary: normalizeValue(values.actionSummary),
+    question: normalizeValue(values.question),
+    resultSummary: normalizeValue(values.resultSummary),
   };
 }
 

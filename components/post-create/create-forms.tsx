@@ -19,6 +19,8 @@ import {
   heroPositionOptions,
   initialFreePostActionState,
   initialHandReviewActionState,
+  normalizeFreePostValues,
+  normalizeHandReviewValues,
   type FieldErrors,
   type FreePostActionState,
   type FreePostField,
@@ -233,12 +235,18 @@ function getFieldError<T extends string>(
   touched: Partial<Record<T, boolean>>,
   clientErrors: FieldErrors<T>,
   serverErrors: FieldErrors<T>,
+  dirtySubmissionIds: Partial<Record<T, number>>,
+  submissionId: number,
 ) {
+  if (serverErrors[field] && dirtySubmissionIds[field] !== submissionId) {
+    return serverErrors[field];
+  }
+
   if (touched[field]) {
     return clientErrors[field];
   }
 
-  return serverErrors[field];
+  return undefined;
 }
 
 function SubmitButton({
@@ -381,14 +389,23 @@ export function FreePostForm({
   const [state, formAction] = useActionState(action, initialFreePostActionState);
   const [values, setValues] = useState<FreePostValues>(emptyFreePostValues);
   const [touched, setTouched] = useState<Partial<Record<FreePostField, boolean>>>({});
+  const [dirtySubmissionIds, setDirtySubmissionIds] = useState<
+    Partial<Record<FreePostField, number>>
+  >({});
+  const normalizedValues = normalizeFreePostValues(values);
 
-  const clientErrors = getFreePostPublishErrors(values);
-  const hasDraftContent = hasFreePostDraftContent(values);
+  const clientErrors = getFreePostPublishErrors(normalizedValues);
+  const hasDraftContent = hasFreePostDraftContent(normalizedValues);
   const canDraft = accessState.envReady && accessState.isAuthenticated && hasDraftContent;
   const canPublish =
     accessState.envReady &&
     accessState.isAuthenticated &&
     Object.keys(clientErrors).length === 0;
+
+  const updateField = (field: FreePostField, value: string) => {
+    setValues((current) => ({ ...current, [field]: value }));
+    setDirtySubmissionIds((current) => ({ ...current, [field]: state.submissionId }));
+  };
 
   let statusLabel = "작성 불가";
   let statusDescription = "제목 또는 본문을 입력하면 초안 저장 버튼이 열립니다.";
@@ -445,9 +462,16 @@ export function FreePostForm({
               name="title"
               value={values.title}
               placeholder="예: 이번 주 세션 복기에서 바꾼 루틴"
-              onChange={(value) => setValues((current) => ({ ...current, title: value }))}
+              onChange={(value) => updateField("title", value)}
               onBlur={() => setTouched((current) => ({ ...current, title: true }))}
-              error={getFieldError("title", touched, clientErrors, state.fieldErrors)}
+              error={getFieldError(
+                "title",
+                touched,
+                clientErrors,
+                state.fieldErrors,
+                dirtySubmissionIds,
+                state.submissionId,
+              )}
             />
 
             <TextareaInput
@@ -456,9 +480,16 @@ export function FreePostForm({
               value={values.body}
               rows={8}
               placeholder="세션 후기, 전략 메모, 커뮤니티 대화를 자유롭게 적어 주세요."
-              onChange={(value) => setValues((current) => ({ ...current, body: value }))}
+              onChange={(value) => updateField("body", value)}
               onBlur={() => setTouched((current) => ({ ...current, body: true }))}
-              error={getFieldError("body", touched, clientErrors, state.fieldErrors)}
+              error={getFieldError(
+                "body",
+                touched,
+                clientErrors,
+                state.fieldErrors,
+                dirtySubmissionIds,
+                state.submissionId,
+              )}
               helper="게시 버튼은 제목과 본문이 모두 있어야 열립니다."
             />
           </div>
@@ -508,10 +539,14 @@ export function HandReviewForm({
   const [touched, setTouched] = useState<Partial<Record<HandReviewField, boolean>>>(
     {},
   );
+  const [dirtySubmissionIds, setDirtySubmissionIds] = useState<
+    Partial<Record<HandReviewField, number>>
+  >({});
+  const normalizedValues = normalizeHandReviewValues(values);
 
-  const clientErrors = getHandReviewPublishErrors(values);
-  const draftErrors = getHandReviewDraftErrors(values);
-  const hasDraftContent = hasHandReviewDraftContent(values);
+  const clientErrors = getHandReviewPublishErrors(normalizedValues);
+  const draftErrors = getHandReviewDraftErrors(normalizedValues);
+  const hasDraftContent = hasHandReviewDraftContent(normalizedValues);
   const canDraft =
     accessState.envReady &&
     accessState.isAuthenticated &&
@@ -521,6 +556,11 @@ export function HandReviewForm({
     accessState.envReady &&
     accessState.isAuthenticated &&
     Object.keys(clientErrors).length === 0;
+
+  const updateField = (field: HandReviewField, value: string) => {
+    setValues((current) => ({ ...current, [field]: value }));
+    setDirtySubmissionIds((current) => ({ ...current, [field]: state.submissionId }));
+  };
 
   let statusLabel = "작성 불가";
   let statusDescription = "한 칸이라도 입력하면 초안 저장 버튼이 열립니다.";
@@ -586,9 +626,16 @@ export function HandReviewForm({
               name="title"
               value={values.title}
               placeholder="예: 딥스택 4벳 팟 리버 결정을 검토하고 싶어요"
-              onChange={(value) => setValues((current) => ({ ...current, title: value }))}
+              onChange={(value) => updateField("title", value)}
               onBlur={() => setTouched((current) => ({ ...current, title: true }))}
-              error={getFieldError("title", touched, clientErrors, state.fieldErrors)}
+              error={getFieldError(
+                "title",
+                touched,
+                clientErrors,
+                state.fieldErrors,
+                dirtySubmissionIds,
+                state.submissionId,
+              )}
               helper="비워두면 포지션과 핸드를 기반으로 서버에서 기본 제목을 만듭니다."
             />
 
@@ -600,9 +647,16 @@ export function HandReviewForm({
                 value: option.value,
                 label: option.label,
               }))}
-              onChange={(value) => setValues((current) => ({ ...current, gameType: value }))}
+              onChange={(value) => updateField("gameType", value)}
               onBlur={() => setTouched((current) => ({ ...current, gameType: true }))}
-              error={getFieldError("gameType", touched, clientErrors, state.fieldErrors)}
+              error={getFieldError(
+                "gameType",
+                touched,
+                clientErrors,
+                state.fieldErrors,
+                dirtySubmissionIds,
+                state.submissionId,
+              )}
             />
 
             <TextInput
@@ -610,11 +664,16 @@ export function HandReviewForm({
               name="stakesLabel"
               value={values.stakesLabel}
               placeholder="예: NL50 / 1-2"
-              onChange={(value) =>
-                setValues((current) => ({ ...current, stakesLabel: value }))
-              }
+              onChange={(value) => updateField("stakesLabel", value)}
               onBlur={() => setTouched((current) => ({ ...current, stakesLabel: true }))}
-              error={getFieldError("stakesLabel", touched, clientErrors, state.fieldErrors)}
+              error={getFieldError(
+                "stakesLabel",
+                touched,
+                clientErrors,
+                state.fieldErrors,
+                dirtySubmissionIds,
+                state.submissionId,
+              )}
             />
 
             <SelectInput
@@ -625,11 +684,16 @@ export function HandReviewForm({
                 value: option.value,
                 label: option.label,
               }))}
-              onChange={(value) =>
-                setValues((current) => ({ ...current, heroPosition: value }))
-              }
+              onChange={(value) => updateField("heroPosition", value)}
               onBlur={() => setTouched((current) => ({ ...current, heroPosition: true }))}
-              error={getFieldError("heroPosition", touched, clientErrors, state.fieldErrors)}
+              error={getFieldError(
+                "heroPosition",
+                touched,
+                clientErrors,
+                state.fieldErrors,
+                dirtySubmissionIds,
+                state.submissionId,
+              )}
             />
           </div>
 
@@ -639,9 +703,16 @@ export function HandReviewForm({
               name="heroCards"
               value={values.heroCards}
               placeholder="예: Ah Kd"
-              onChange={(value) => setValues((current) => ({ ...current, heroCards: value }))}
+              onChange={(value) => updateField("heroCards", value)}
               onBlur={() => setTouched((current) => ({ ...current, heroCards: true }))}
-              error={getFieldError("heroCards", touched, clientErrors, state.fieldErrors)}
+              error={getFieldError(
+                "heroCards",
+                touched,
+                clientErrors,
+                state.fieldErrors,
+                dirtySubmissionIds,
+                state.submissionId,
+              )}
               helper="카드는 공백 또는 쉼표로 구분해 두 장 입력합니다."
             />
 
@@ -651,11 +722,16 @@ export function HandReviewForm({
                 name="boardFlop"
                 value={values.boardFlop}
                 placeholder="예: Jc Ts 2d"
-                onChange={(value) =>
-                  setValues((current) => ({ ...current, boardFlop: value }))
-                }
+                onChange={(value) => updateField("boardFlop", value)}
                 onBlur={() => setTouched((current) => ({ ...current, boardFlop: true }))}
-                error={getFieldError("boardFlop", touched, clientErrors, state.fieldErrors)}
+                error={getFieldError(
+                  "boardFlop",
+                  touched,
+                  clientErrors,
+                  state.fieldErrors,
+                  dirtySubmissionIds,
+                  state.submissionId,
+                )}
               />
 
               <TextInput
@@ -663,11 +739,16 @@ export function HandReviewForm({
                 name="boardTurn"
                 value={values.boardTurn}
                 placeholder="예: 8h"
-                onChange={(value) =>
-                  setValues((current) => ({ ...current, boardTurn: value }))
-                }
+                onChange={(value) => updateField("boardTurn", value)}
                 onBlur={() => setTouched((current) => ({ ...current, boardTurn: true }))}
-                error={getFieldError("boardTurn", touched, clientErrors, state.fieldErrors)}
+                error={getFieldError(
+                  "boardTurn",
+                  touched,
+                  clientErrors,
+                  state.fieldErrors,
+                  dirtySubmissionIds,
+                  state.submissionId,
+                )}
               />
 
               <TextInput
@@ -675,11 +756,16 @@ export function HandReviewForm({
                 name="boardRiver"
                 value={values.boardRiver}
                 placeholder="예: Ac"
-                onChange={(value) =>
-                  setValues((current) => ({ ...current, boardRiver: value }))
-                }
+                onChange={(value) => updateField("boardRiver", value)}
                 onBlur={() => setTouched((current) => ({ ...current, boardRiver: true }))}
-                error={getFieldError("boardRiver", touched, clientErrors, state.fieldErrors)}
+                error={getFieldError(
+                  "boardRiver",
+                  touched,
+                  clientErrors,
+                  state.fieldErrors,
+                  dirtySubmissionIds,
+                  state.submissionId,
+                )}
               />
             </div>
           </div>
@@ -699,11 +785,16 @@ export function HandReviewForm({
               value={values.actionSummary}
               rows={6}
               placeholder="프리플랍, 플랍, 턴, 리버 액션을 간단히 순서대로 적어 주세요."
-              onChange={(value) =>
-                setValues((current) => ({ ...current, actionSummary: value }))
-              }
+              onChange={(value) => updateField("actionSummary", value)}
               onBlur={() => setTouched((current) => ({ ...current, actionSummary: true }))}
-              error={getFieldError("actionSummary", touched, clientErrors, state.fieldErrors)}
+              error={getFieldError(
+                "actionSummary",
+                touched,
+                clientErrors,
+                state.fieldErrors,
+                dirtySubmissionIds,
+                state.submissionId,
+              )}
             />
 
             <TextareaInput
@@ -712,11 +803,16 @@ export function HandReviewForm({
               value={values.question}
               rows={5}
               placeholder="무엇을 가장 검토받고 싶은지 한두 문장으로 적어 주세요."
-              onChange={(value) =>
-                setValues((current) => ({ ...current, question: value }))
-              }
+              onChange={(value) => updateField("question", value)}
               onBlur={() => setTouched((current) => ({ ...current, question: true }))}
-              error={getFieldError("question", touched, clientErrors, state.fieldErrors)}
+              error={getFieldError(
+                "question",
+                touched,
+                clientErrors,
+                state.fieldErrors,
+                dirtySubmissionIds,
+                state.submissionId,
+              )}
             />
 
             <TextareaInput
@@ -725,9 +821,16 @@ export function HandReviewForm({
               value={values.body}
               rows={5}
               placeholder="테이블 이미지, 상대 성향, 스택 흐름처럼 자유 서술이 필요한 맥락을 적어 주세요."
-              onChange={(value) => setValues((current) => ({ ...current, body: value }))}
+              onChange={(value) => updateField("body", value)}
               onBlur={() => setTouched((current) => ({ ...current, body: true }))}
-              error={getFieldError("body", touched, clientErrors, state.fieldErrors)}
+              error={getFieldError(
+                "body",
+                touched,
+                clientErrors,
+                state.fieldErrors,
+                dirtySubmissionIds,
+                state.submissionId,
+              )}
               helper="선택 입력입니다. 비워두면 리뷰 질문을 본문으로 함께 저장합니다."
             />
 
@@ -737,11 +840,16 @@ export function HandReviewForm({
               value={values.resultSummary}
               rows={4}
               placeholder="쇼다운, 폴드, 결과가 이미 나온 경우에만 적어 주세요."
-              onChange={(value) =>
-                setValues((current) => ({ ...current, resultSummary: value }))
-              }
+              onChange={(value) => updateField("resultSummary", value)}
               onBlur={() => setTouched((current) => ({ ...current, resultSummary: true }))}
-              error={getFieldError("resultSummary", touched, clientErrors, state.fieldErrors)}
+              error={getFieldError(
+                "resultSummary",
+                touched,
+                clientErrors,
+                state.fieldErrors,
+                dirtySubmissionIds,
+                state.submissionId,
+              )}
             />
           </div>
         </section>
