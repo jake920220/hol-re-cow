@@ -249,6 +249,17 @@ function getFieldError<T extends string>(
   return undefined;
 }
 
+function hasDirtyChangesSinceSubmission<T extends string>(
+  dirtySubmissionIds: Partial<Record<T, number>>,
+  submissionId: number,
+) {
+  if (submissionId === 0) {
+    return false;
+  }
+
+  return Object.values(dirtySubmissionIds).some((value) => value === submissionId);
+}
+
 function SubmitButton({
   intent,
   pendingText,
@@ -393,14 +404,25 @@ export function FreePostForm({
     Partial<Record<FreePostField, number>>
   >({});
   const normalizedValues = normalizeFreePostValues(values);
+  const hasChangesSinceLastSubmission = hasDirtyChangesSinceSubmission(
+    dirtySubmissionIds,
+    state.submissionId,
+  );
 
   const clientErrors = getFreePostPublishErrors(normalizedValues);
   const hasDraftContent = hasFreePostDraftContent(normalizedValues);
-  const canDraft = accessState.envReady && accessState.isAuthenticated && hasDraftContent;
+  const submissionLocked =
+    state.status === "success" && !hasChangesSinceLastSubmission;
+  const canDraft =
+    accessState.envReady &&
+    accessState.isAuthenticated &&
+    hasDraftContent &&
+    !submissionLocked;
   const canPublish =
     accessState.envReady &&
     accessState.isAuthenticated &&
-    Object.keys(clientErrors).length === 0;
+    Object.keys(clientErrors).length === 0 &&
+    !submissionLocked;
 
   const updateField = (field: FreePostField, value: string) => {
     setValues((current) => ({ ...current, [field]: value }));
@@ -418,6 +440,11 @@ export function FreePostForm({
     statusLabel = "로그인 필요";
     statusDescription = "로그인 후 서버 액션에서만 저장할 수 있습니다.";
     blockers = ["로그인 필요"];
+  } else if (submissionLocked) {
+    statusLabel = state.savedAs === "published" ? "게시 완료" : "초안 저장 완료";
+    statusDescription =
+      "같은 내용의 중복 저장을 막기 위해 버튼을 잠가두었습니다. 내용을 수정하면 다시 저장할 수 있습니다.";
+    blockers = ["내용 수정 후 재저장 가능"];
   } else if (canPublish) {
     statusLabel = "제출 가능";
     statusDescription = "제목과 본문이 모두 준비되었습니다. 바로 게시하거나 초안으로 저장할 수 있어요.";
@@ -442,7 +469,8 @@ export function FreePostForm({
         blockers={blockers}
       />
 
-      {state.message ? (
+      {state.message &&
+      !(state.status === "success" && hasChangesSinceLastSubmission) ? (
         <Notice tone={state.status === "success" ? "success" : "error"}>
           {state.message}
         </Notice>
@@ -543,19 +571,27 @@ export function HandReviewForm({
     Partial<Record<HandReviewField, number>>
   >({});
   const normalizedValues = normalizeHandReviewValues(values);
+  const hasChangesSinceLastSubmission = hasDirtyChangesSinceSubmission(
+    dirtySubmissionIds,
+    state.submissionId,
+  );
 
   const clientErrors = getHandReviewPublishErrors(normalizedValues);
   const draftErrors = getHandReviewDraftErrors(normalizedValues);
   const hasDraftContent = hasHandReviewDraftContent(normalizedValues);
+  const submissionLocked =
+    state.status === "success" && !hasChangesSinceLastSubmission;
   const canDraft =
     accessState.envReady &&
     accessState.isAuthenticated &&
     hasDraftContent &&
-    Object.keys(draftErrors).length === 0;
+    Object.keys(draftErrors).length === 0 &&
+    !submissionLocked;
   const canPublish =
     accessState.envReady &&
     accessState.isAuthenticated &&
-    Object.keys(clientErrors).length === 0;
+    Object.keys(clientErrors).length === 0 &&
+    !submissionLocked;
 
   const updateField = (field: HandReviewField, value: string) => {
     setValues((current) => ({ ...current, [field]: value }));
@@ -573,6 +609,11 @@ export function HandReviewForm({
     statusLabel = "로그인 필요";
     statusDescription = "로그인 후 서버 액션에서만 저장할 수 있습니다.";
     blockers = ["로그인 필요"];
+  } else if (submissionLocked) {
+    statusLabel = state.savedAs === "published" ? "리뷰 게시 완료" : "초안 저장 완료";
+    statusDescription =
+      "같은 핸드리뷰를 다시 저장하지 않도록 버튼을 잠가두었습니다. 내용을 수정하면 다음 저장이 다시 열립니다.";
+    blockers = ["내용 수정 후 재저장 가능"];
   } else if (canPublish) {
     statusLabel = "제출 가능";
     statusDescription = "핸드의 핵심 맥락이 모두 준비되었습니다. 바로 게시하거나 초안으로 남길 수 있어요.";
@@ -606,7 +647,8 @@ export function HandReviewForm({
         blockers={blockers}
       />
 
-      {state.message ? (
+      {state.message &&
+      !(state.status === "success" && hasChangesSinceLastSubmission) ? (
         <Notice tone={state.status === "success" ? "success" : "error"}>
           {state.message}
         </Notice>
