@@ -36,7 +36,7 @@
   --color-on-surface: var(--on-surface);
   --color-on-surface-variant: var(--on-surface-variant);
   --color-error: var(--error);
-  --font-sans: var(--font-noto-sans-kr);
+  --font-sans: "Noto Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
 }
 
 * {
@@ -53,7 +53,7 @@ body {
     radial-gradient(circle at top, rgba(149, 212, 179, 0.12), transparent 26%),
     linear-gradient(180deg, #171717 0%, #131313 42%, #0f0f0f 100%);
   color: var(--on-surface);
-  font-family: var(--font-noto-sans-kr), sans-serif;
+  font-family: "Noto Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
 }
 
 a {
