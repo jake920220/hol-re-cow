@@ -96,6 +96,9 @@
 | `question` | `text` | 리뷰 요청 질문 |
 | `result_summary` | `text` | 결과 요약, nullable |
 
+초안 저장을 허용하는 phase에서는 `posts.status = draft` 인 동안 일부 구조화 필드가 비어 있을 수 있다.
+게시 단계에서는 서버 검증으로 필수 입력을 다시 확인한다.
+
 기본 인덱스:
 
 - `post_id` unique
